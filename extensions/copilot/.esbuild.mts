@@ -148,6 +148,9 @@ const shimVsCodeTypesPlugin: esbuild.Plugin = {
 	setup(build) {
 		// Create a virtual module that will try to require vscode at runtime
 		build.onResolve({ filter: /^vscode$/ }, args => {
+			if (args.namespace === 'vscode-fallback') {
+				return { external: true };
+			}
 			return {
 				path: 'vscode-dynamic',
 				namespace: 'vscode-fallback'
@@ -163,7 +166,7 @@ const shimVsCodeTypesPlugin: esbuild.Plugin = {
 						vscode = COPILOT_SIMULATION_VSCODE;
 					} else {
 						try {
-							vscode = eval('require(' + JSON.stringify('vscode') + ')');
+							vscode = require('vscode');
 						} catch (e) {
 							vscode = require('./src/util/common/test/shims/vscodeTypesShim.ts');
 						}
