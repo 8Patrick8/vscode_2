@@ -163,7 +163,7 @@ function updateLoadingContainer(message: Message) {
 		return;
 	}
 	if (message.percentage >= 100) {
-		loadingContainer.innerHTML = `${message.solutions.length} Suggestions`;
+		loadingContainer.textContent = `${message.solutions.length} Suggestions`;
 	} else {
 		const loadingLabelElement = loadingContainer.querySelector('label') as HTMLLabelElement;
 		if (loadingLabelElement.textContent !== 'Loading suggestions:\u00A0') {

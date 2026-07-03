@@ -254,6 +254,7 @@ export class DiagramElement {
 		if (this.showControls === ShowControlsMode.OnHoverOrFocus) {
 			controls.classList.add('mermaid-zoom-controls-auto-hide');
 		}
+		// Static HTML — no user-supplied data.
 		controls.innerHTML = `
 			<button class="pan-mode-btn" title="Toggle Pan Mode" aria-label="Toggle Pan Mode" aria-pressed="false"><span class="codicon codicon-move" aria-hidden="true"></span></button>
 			<button class="zoom-out-btn" title="Zoom Out" aria-label="Zoom Out"><span class="codicon codicon-zoom-out" aria-hidden="true"></span></button>
