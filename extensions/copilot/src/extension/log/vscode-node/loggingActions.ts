@@ -406,7 +406,7 @@ async function proxyConnect(httpx: typeof https | typeof http, proxyUrl: string,
 			headers: {
 				Host: targetHost,
 			},
-			rejectUnauthorized: false,
+			rejectUnauthorized: vscode.workspace.getConfiguration().get<boolean>('http.proxyStrictSSL', true),
 		};
 		const req = httpx.request(options);
 		req.on('connect', (res, socket, head) => {
