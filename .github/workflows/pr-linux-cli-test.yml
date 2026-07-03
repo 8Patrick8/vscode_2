@@ -23,7 +23,10 @@ jobs:
       - name: Install Rust
         run: |
           set -e
-          curl https://sh.rustup.rs -sSf | sh -s -- -y --profile minimal --default-toolchain $RUSTUP_TOOLCHAIN
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o rustup-init.sh
+          echo "6c30b75a75b28a96fd913a037c8581b580080b6ee9b8169a3c0feb1af7fe8caf  rustup-init.sh" | sha256sum -c
+          sh rustup-init.sh -y --profile minimal --default-toolchain $RUSTUP_TOOLCHAIN
+          rm rustup-init.sh
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
 
       - name: Set Rust version

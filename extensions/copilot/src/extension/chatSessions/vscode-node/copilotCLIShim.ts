@@ -106,7 +106,7 @@ function runBrew(label: string) {
 }
 
 function runCurl(label: string) {
-	const result = spawnSync('bash', ['-c', 'curl -fsSL https://gh.io/copilot-install | bash'], { stdio: 'inherit', env });
+	const result = spawnSync('bash', ['-c', 'TMPFILE=$(mktemp) && curl -fsSL https://gh.io/copilot-install -o "$TMPFILE" && bash "$TMPFILE" && rm "$TMPFILE"'], { stdio: 'inherit', env });
 	if (result.error) {
 		warn(`${label} via curl failed: ${result.error.message}`);
 		return false;
@@ -119,7 +119,7 @@ function runCurl(label: string) {
 }
 
 function runWget(label: string) {
-	const result = spawnSync('bash', ['-c', 'wget -qO- https://gh.io/copilot-install | bash'], { stdio: 'inherit', env });
+	const result = spawnSync('bash', ['-c', 'TMPFILE=$(mktemp) && wget -qO "$TMPFILE" https://gh.io/copilot-install && bash "$TMPFILE" && rm "$TMPFILE"'], { stdio: 'inherit', env });
 	if (result.error) {
 		warn(`${label} via wget failed: ${result.error.message}`);
 		return false;
