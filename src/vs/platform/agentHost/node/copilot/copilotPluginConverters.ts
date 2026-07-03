@@ -291,6 +291,7 @@ function executeHookCommand(hook: IParsedHookCommand, stdin?: string, workspaceT
 	}
 
 	if (workspaceTrustService && !workspaceTrustService.isWorkspaceTrusted()) {
+		console.warn(`[HookExecutor] Hook command blocked: workspace is not trusted: ${command}`);
 		return Promise.resolve('');
 	}
 

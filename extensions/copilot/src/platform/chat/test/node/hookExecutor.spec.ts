@@ -5,6 +5,7 @@
 
 import { EventEmitter } from 'events';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
+import * as vscode from 'vscode';
 import type { ChatHookCommand } from 'vscode';
 import { CancellationToken, CancellationTokenSource } from '../../../../util/vs/base/common/cancellation';
 import { URI } from '../../../../util/vs/base/common/uri';
@@ -12,6 +13,10 @@ import { TestLogService } from '../../../testing/common/testLogService';
 import { HookCommandResultKind } from '../../common/hookExecutor';
 import { IHooksOutputChannel } from '../../common/hooksOutputChannel';
 import { getShellCommand, NodeHookExecutor } from '../../node/hookExecutor';
+
+vi.mock('vscode', () => ({
+	workspace: { isTrusted: true },
+}));
 
 let mockChild: MockChildProcess;
 
@@ -207,6 +212,20 @@ describe('NodeHookExecutor', () => {
 			expect(result.kind).toBe(HookCommandResultKind.NonBlockingError);
 		} finally {
 			vi.useRealTimers();
+		}
+	});
+
+	test('blocks hook execution when workspace is not trusted', async () => {
+		(vi.mocked(vscode.workspace) as { isTrusted: boolean }).isTrusted = false;
+		try {
+			const promise = executor.executeCommand(cmd('test'), undefined, CancellationToken.None);
+			const result = await promise;
+
+			expect(result.kind).toBe(HookCommandResultKind.NonBlockingError);
+			expect(result.result).toBe('Hook execution blocked: workspace is not trusted.');
+			expect(child.stdin.write).not.toHaveBeenCalled();
+		} finally {
+			(vi.mocked(vscode.workspace) as { isTrusted: boolean }).isTrusted = true;
 		}
 	});
 
