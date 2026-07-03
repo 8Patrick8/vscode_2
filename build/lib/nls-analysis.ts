@@ -312,6 +312,58 @@ export class TextModel {
  * sourceExpression can be "foo", 'foo', `foo` or { key: 'foo', comment: [...] }
  */
 export function parseLocalizeKeyOrValue(sourceExpression: string): string | { key: string; comment?: string[] } {
-	// eslint-disable-next-line no-eval
-	return eval(`(${sourceExpression})`);
+	if (sourceExpression[0] === '{') {
+		return parseObjectExpression(sourceExpression);
+	}
+	return parseStringExpression(sourceExpression);
+}
+
+function parseStringExpression(source: string): string {
+	const quote = source[0];
+	if (quote === '"') {
+		return JSON.parse(source) as string;
+	}
+	const content = source.slice(1, -1);
+	const result: string[] = [];
+	let i = 0;
+	while (i < content.length) {
+		if (content[i] === '\\' && i + 1 < content.length) {
+			const next = content[i + 1];
+			switch (next) {
+				case '\\': result.push('\\'); break;
+				case "'": result.push("'"); break;
+				case '"': result.push('"'); break;
+				case '`': result.push('`'); break;
+				case 'n': result.push('\n'); break;
+				case 't': result.push('\t'); break;
+				case 'r': result.push('\r'); break;
+				default: result.push(next); break;
+			}
+			i += 2;
+		} else {
+			result.push(content[i]);
+			i++;
+		}
+	}
+	return result.join('');
+}
+
+function parseObjectExpression(source: string): { key: string; comment?: string[] } {
+	const keyMatch = /key\s*:\s*(['"`])(?:\\.|[^\\])*?\1/.exec(source);
+	const commentMatch = /comment\s*:\s*\[((?:['"`](?:\\.|[^\\])*?['"`]\s*(?:,\s*['"`](?:\\.|[^\\])*?['"`])*)?)\s*\]/.exec(source);
+
+	const result: { key: string; comment?: string[] } = { key: '' };
+
+	if (keyMatch) {
+		const keyLiteral = keyMatch[0].replace(/^key\s*:\s*/, '');
+		result.key = parseStringExpression(keyLiteral);
+	}
+	if (commentMatch && commentMatch[1].trim()) {
+		const commentStrings = commentMatch[1].match(/['"`](?:\\.|[^\\])*?['"`]/g);
+		if (commentStrings) {
+			result.comment = commentStrings.map(s => parseStringExpression(s));
+		}
+	}
+
+	return result;
 }
