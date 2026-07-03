@@ -106,7 +106,7 @@ function runBrew(label: string) {
 }
 
 function runCurl(label: string) {
-	const result = spawnSync('bash', ['-c', 'TMPFILE=$(mktemp) && curl -fsSL https://gh.io/copilot-install -o "$TMPFILE" && bash "$TMPFILE" && rm "$TMPFILE"'], { stdio: 'inherit', env });
+	const result = spawnSync('bash', ['-c', 'export VERSION=' + REQUIRED_VERSION + '; TMPFILE=$(mktemp) && curl -fsSL https://gh.io/copilot-install -o "$TMPFILE" && echo "cd45508981a9baee5fb8f5e38495d315758cd7fea4a715b53a9f26c12544dc95  $TMPFILE" | sha256sum -c && bash "$TMPFILE" && rm "$TMPFILE"'], { stdio: 'inherit', env });
 	if (result.error) {
 		warn(`${label} via curl failed: ${result.error.message}`);
 		return false;
@@ -119,7 +119,7 @@ function runCurl(label: string) {
 }
 
 function runWget(label: string) {
-	const result = spawnSync('bash', ['-c', 'TMPFILE=$(mktemp) && wget -qO "$TMPFILE" https://gh.io/copilot-install && bash "$TMPFILE" && rm "$TMPFILE"'], { stdio: 'inherit', env });
+	const result = spawnSync('bash', ['-c', 'export VERSION=' + REQUIRED_VERSION + '; TMPFILE=$(mktemp) && wget -qO "$TMPFILE" https://gh.io/copilot-install && echo "cd45508981a9baee5fb8f5e38495d315758cd7fea4a715b53a9f26c12544dc95  $TMPFILE" | sha256sum -c && bash "$TMPFILE" && rm "$TMPFILE"'], { stdio: 'inherit', env });
 	if (result.error) {
 		warn(`${label} via wget failed: ${result.error.message}`);
 		return false;
