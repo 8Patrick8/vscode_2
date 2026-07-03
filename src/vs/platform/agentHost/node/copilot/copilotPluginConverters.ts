@@ -14,6 +14,7 @@ import { McpServerType, type IMcpServerConfiguration } from '../../../mcp/common
 import type { IMcpServerDefinition, INamedPluginResource, IParsedAgent, IParsedHookCommand, IParsedHookGroup, IParsedPlugin } from '../../../agentPlugins/common/pluginParsers.js';
 import { type AgentCustomization, type ChildCustomization } from '../../common/state/protocol/state.js';
 import { dirname } from '../../../../base/common/path.js';
+import { IWorkspaceTrustManagementService } from '../../../workspace/common/workspaceTrust.js';
 
 type SessionHooks = NonNullable<SessionConfig['hooks']>;
 type PreToolUseHookInput = Parameters<NonNullable<SessionHooks['onPreToolUse']>>[0];
@@ -283,9 +284,14 @@ function resolveEffectiveCommand(hook: IParsedHookCommand, os: OperatingSystem):
  * Executes a hook command as a shell process. Returns the stdout on success,
  * or throws on non-zero exit code or timeout.
  */
-function executeHookCommand(hook: IParsedHookCommand, stdin?: string): Promise<string> {
+function executeHookCommand(hook: IParsedHookCommand, stdin?: string, workspaceTrustService?: IWorkspaceTrustManagementService): Promise<string> {
 	const command = resolveEffectiveCommand(hook, OS);
 	if (!command) {
+		return Promise.resolve('');
+	}
+
+	if (workspaceTrustService && !workspaceTrustService.isWorkspaceTrusted()) {
+		console.warn(`[HookExecutor] Hook command blocked: workspace is not trusted: ${command}`);
 		return Promise.resolve('');
 	}
 
@@ -334,14 +340,14 @@ function executeHookCommand(hook: IParsedHookCommand, stdin?: string): Promise<s
  * or `undefined` if no command produces parseable JSON output.
  * Command failures are swallowed — hooks are non-fatal.
  */
-async function runHookCommands(commands: readonly IParsedHookCommand[] | undefined, input: unknown): Promise<object | undefined> {
+async function runHookCommands(commands: readonly IParsedHookCommand[] | undefined, input: unknown, workspaceTrustService?: IWorkspaceTrustManagementService): Promise<object | undefined> {
 	if (!commands) {
 		return undefined;
 	}
 	const stdin = JSON.stringify(input);
 	for (const cmd of commands) {
 		try {
-			const output = await executeHookCommand(cmd, stdin);
+			const output = await executeHookCommand(cmd, stdin, workspaceTrustService);
 			if (output.trim()) {
 				try {
 					const parsed = JSON.parse(output);
@@ -386,6 +392,7 @@ export function toSdkHooks(
 		readonly onPreToolUse: (input: PreToolUseHookInput) => Promise<void>;
 		readonly onPostToolUse: (input: PostToolUseHookInput) => Promise<void>;
 	},
+	workspaceTrustService?: IWorkspaceTrustManagementService,
 ): SessionHooks {
 	// Group all commands by SDK handler key
 	const commandsByKey = new Map<keyof SessionHooks, IParsedHookCommand[]>();
@@ -406,7 +413,7 @@ export function toSdkHooks(
 	if (preToolCommands?.length || editTrackingHooks) {
 		hooks.onPreToolUse = async (input: PreToolUseHookInput) => {
 			await editTrackingHooks?.onPreToolUse(input);
-			return runHookCommands(preToolCommands, input);
+			return runHookCommands(preToolCommands, input, workspaceTrustService);
 		};
 	}
 
@@ -415,7 +422,7 @@ export function toSdkHooks(
 	if (postToolCommands?.length || editTrackingHooks) {
 		hooks.onPostToolUse = async (input: PostToolUseHookInput) => {
 			await editTrackingHooks?.onPostToolUse(input);
-			return runHookCommands(postToolCommands, input);
+			return runHookCommands(postToolCommands, input, workspaceTrustService);
 		};
 	}
 
@@ -426,7 +433,7 @@ export function toSdkHooks(
 			const stdin = JSON.stringify(input);
 			for (const cmd of promptCommands) {
 				try {
-					await executeHookCommand(cmd, stdin);
+					await executeHookCommand(cmd, stdin, workspaceTrustService);
 				} catch {
 					// Hook failures are non-fatal
 				}
@@ -441,7 +448,7 @@ export function toSdkHooks(
 			const stdin = JSON.stringify(input);
 			for (const cmd of startCommands) {
 				try {
-					await executeHookCommand(cmd, stdin);
+					await executeHookCommand(cmd, stdin, workspaceTrustService);
 				} catch {
 					// Hook failures are non-fatal
 				}
@@ -456,7 +463,7 @@ export function toSdkHooks(
 			const stdin = JSON.stringify(input);
 			for (const cmd of endCommands) {
 				try {
-					await executeHookCommand(cmd, stdin);
+					await executeHookCommand(cmd, stdin, workspaceTrustService);
 				} catch {
 					// Hook failures are non-fatal
 				}
@@ -471,7 +478,7 @@ export function toSdkHooks(
 			const stdin = JSON.stringify(input);
 			for (const cmd of errorCommands) {
 				try {
-					await executeHookCommand(cmd, stdin);
+					await executeHookCommand(cmd, stdin, workspaceTrustService);
 				} catch {
 					// Hook failures are non-fatal
 				}

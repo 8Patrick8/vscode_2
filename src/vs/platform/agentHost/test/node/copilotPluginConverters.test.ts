@@ -18,6 +18,7 @@ import { McpServerType } from '../../../mcp/common/mcpPlatformTypes.js';
 import { toSdkInstructionDirectories, toSdkMcpServers, toSdkCustomAgents, toSdkSessionCustomAgents, toSdkSkillDirectories, parsedPluginsEqual, toSdkHooks, type IPluginAgentsForSdk } from '../../node/copilot/copilotPluginConverters.js';
 import type { IMcpServerDefinition, INamedPluginResource, IParsedHookGroup, IParsedPlugin, IParsedSkill } from '../../../agentPlugins/common/pluginParsers.js';
 import { CustomizationType, McpServerStatus, type HookCustomization, type McpServerCustomization, type SkillCustomization } from '../../common/state/protocol/state.js';
+import { IWorkspaceTrustManagementService } from '../../../workspace/common/workspaceTrust.js';
 
 function stubMcpCustomization(name = 'test'): McpServerCustomization {
 	return { type: CustomizationType.McpServer, id: `mcp:${name}`, uri: 'file:///plugin', name, enabled: true, state: { kind: McpServerStatus.Starting } };
@@ -447,6 +448,39 @@ suite('copilotPluginConverters', () => {
 				const result = await hooks.onPostToolUse!(callInput, { sessionId: 'test' });
 				assert.deepStrictEqual(result, expectedOutput);
 				assert.deepStrictEqual(trackingInput, callInput);
+			} finally {
+				cleanup();
+			}
+		});
+
+		test('onPostToolUse returns undefined when workspace is not trusted', async () => {
+			const expectedOutput = { additionalContext: 'should be blocked' };
+			const { command, cleanup } = echoJsonCmd(expectedOutput);
+			try {
+				const hookGroup = makeHookGroup('PostToolUse', command);
+				const untrustedService: IWorkspaceTrustManagementService = {
+					_serviceBrand: undefined,
+					onDidChangeTrust: undefined!,
+					onDidChangeTrustedFolders: undefined!,
+					workspaceResolved: Promise.resolve(),
+					workspaceTrustInitialized: Promise.resolve(),
+					acceptsOutOfWorkspaceFiles: false,
+					isWorkspaceTrusted: () => false,
+					isWorkspaceTrustForced: () => false,
+					canSetParentFolderTrust: () => false,
+					setParentFolderTrust: async () => { },
+					canSetWorkspaceTrust: () => false,
+					setWorkspaceTrust: async () => { },
+					getUriTrustInfo: async () => ({ uri: URI.file('/'), trusted: false }),
+					setUrisTrust: async () => { },
+					getTrustedUris: () => [],
+					setTrustedUris: async () => { },
+					addWorkspaceTrustTransitionParticipant: () => ({ dispose: () => { } }),
+				};
+				const hooks = toSdkHooks([hookGroup], undefined, untrustedService);
+				const toolResult = { textResultForLlm: 'ok', resultType: 'success' as const };
+				const result = await hooks.onPostToolUse!({ toolName: 'memory', toolArgs: {}, toolResult, timestamp: new Date(0), workingDirectory: '/', sessionId: 'test' }, { sessionId: 'test' });
+				assert.strictEqual(result, undefined);
 			} finally {
 				cleanup();
 			}
