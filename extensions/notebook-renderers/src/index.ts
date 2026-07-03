@@ -108,6 +108,8 @@ async function renderHTML(outputInfo: OutputItem, container: HTMLElement, signal
 	clearContainer(container);
 	let element: HTMLElement = document.createElement('div');
 	const htmlContent = outputInfo.text();
+	// Trusted: renderHTML is only reached when ctx.workspace.isTrusted is true
+	// (see the renderOutputItem guard in activate), so user has opted into raw HTML.
 	const trustedHtml = ttPolicy?.createHTML(htmlContent) ?? htmlContent;
 	element.innerHTML = trustedHtml as string;
 	fixUpSvgElement(outputInfo, element);
@@ -138,6 +140,7 @@ async function renderJavascript(outputInfo: OutputItem, container: HTMLElement, 
 	script.textContent = scriptText;
 
 	const element = document.createElement('div');
+	// Trusted: renderJavascript is only reached when ctx.workspace.isTrusted is true.
 	const trustedHtml = ttPolicy?.createHTML(script.outerHTML) ?? script.outerHTML;
 	element.innerHTML = trustedHtml as string;
 	container.appendChild(element);
@@ -228,6 +231,8 @@ function createMinimalError(errorLocation: string | undefined, headerMessage: st
 	const headerSection = document.createElement('div');
 	headerSection.classList.add('error-output-header');
 
+	// Trusted: errorLocation is only populated when trustHtml is true (ctx.workspace.isTrusted);
+	// the HTML is generated internally by formatStackTrace -> linkifyStack with controlled hrefs.
 	if (errorLocation && errorLocation.indexOf('<a') === 0) {
 		headerSection.innerHTML = errorLocation;
 	}

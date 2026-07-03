@@ -336,7 +336,9 @@ export const activate: ActivationFunction<void> = (ctx) => {
 				const unsanitizedRenderedMarkdown = markdownIt.render(markdownText, {
 					outputItem: outputInfo,
 				});
-				previewNode.innerHTML = (ctx.workspace.isTrusted
+			// Trusted workspace: raw markdown-it HTML is permitted (user has opted in).
+			// Untrusted workspace: DOMPurify strips unauthorized tags/attributes.
+			previewNode.innerHTML = (ctx.workspace.isTrusted
 					? unsanitizedRenderedMarkdown
 					: DOMPurify.sanitize(unsanitizedRenderedMarkdown, sanitizerOptions)) as string;
 			}

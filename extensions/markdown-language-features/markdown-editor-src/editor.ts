@@ -100,6 +100,8 @@ class Editor extends Disposable {
 				mermaid
 					.render(id, content)
 					.then(({ svg }) => {
+						// Trusted: SVG output from mermaid.render() — a library that generates
+						// valid SVG from user-authored diagram descriptions.
 						div.innerHTML = svg;
 					})
 					.catch(() => {

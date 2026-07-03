@@ -42,11 +42,14 @@ export async function activate(ctx: RendererContext<void>) {
 			diagramManager.updateConfig(extensionConfig);
 
 			const temp = document.createElement('div');
+			// Trusted: result is markdown-it HTML output rendered from notebook markdown.
 			temp.innerHTML = result;
 			renderMermaidBlocksInElement(temp, (mermaidContainer, content, _contentHash, isError) => {
 				const liveEl = shadowRoot?.getElementById(mermaidContainer.id);
 				if (liveEl) {
 					liveEl.dataset.vscodeContext = mermaidContainer.dataset.vscodeContext ?? '';
+					// Trusted: content is SVG from mermaid.render() or outerHTML of a
+					// locally-built error element — no user-supplied HTML passes through.
 					liveEl.innerHTML = content;
 					if (!isError) {
 						diagramManager.setup(liveEl.id, liveEl);

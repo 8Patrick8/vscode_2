@@ -41,6 +41,8 @@ async function init() {
 
 	const activeIds = new Set<string>();
 	await renderMermaidBlocksInElement(document.body, (mermaidContainer, content, _contentHash, isError) => {
+		// Trusted: content is either SVG from mermaid.render() or outerHTML of a
+		// locally-built error <pre> element — no user-supplied HTML passes through.
 		mermaidContainer.innerHTML = content;
 		if (isError) {
 			return;
