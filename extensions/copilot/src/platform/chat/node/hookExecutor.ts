@@ -5,6 +5,7 @@
 
 import { spawn } from 'child_process';
 import { homedir } from 'os';
+import * as vscode from 'vscode';
 import type { CancellationToken, ChatHookCommand, Uri } from 'vscode';
 import { join, win32 } from '../../../util/vs/base/common/path';
 import { isWindows } from '../../../util/vs/base/common/platform';
@@ -47,6 +48,16 @@ export class NodeHookExecutor implements IHookExecutor {
 	}
 
 	private _spawn(hook: ChatHookCommand, input: unknown, token: CancellationToken): Promise<IHookCommandResult> {
+		if (!vscode.workspace.isTrusted) {
+			const message = `Hook command blocked: workspace is not trusted: ${hook.command}`;
+			this._logService.warn(`[HookExecutor] ${message}`);
+			this._outputChannel.appendLine(`[HookExecutor] ${message}`);
+			return Promise.resolve({
+				kind: HookCommandResultKind.NonBlockingError,
+				result: 'Hook execution blocked: workspace is not trusted.'
+			});
+		}
+
 		const cwd = hook.cwd ? uriToFsPath(hook.cwd) : homedir();
 		const env = { ...process.env, ...hook.env };
 		const { command, args, shell, env: shellEnv } = getShellCommand(hook.command);
